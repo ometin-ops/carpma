@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Math Slicer - Çarpım Tablosu Oyunu</title>
+
+  <!-- PWA & Mobile Meta Tags -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#FF7E5F">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Math Slicer">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+
+  <!--
+    Nunito: Türkçe karakterleri (İ, ı, Ş, ş, Ğ, ğ, Ç, ç, Ö, ö, Ü, ü) tam destekler.
+    Baloo 2: Hem eğlenceli/çizgi film hem de tam Türkçe desteği.
+  -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&family=Baloo+2:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="game-container">
+
+    <!-- Canvas: fizik, kesme, parçacık efektleri -->
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Üst HUD (oyun sırasında görünür) -->
+    <header id="hud" class="hidden">
+
+      <!-- Sol: Puan -->
+      <div class="hud-box score-card score-container">
+        <img src="wired-flat-3542-shopping-basket-groceries-hover-pinch.webp" alt="Sepet / Puan" class="score-basket-icon hud-icon">
+        <div class="hud-info">
+          <span class="hud-label">PUAN</span>
+          <span id="score-display" class="hud-value">0</span>
+        </div>
+      </div>
+
+      <!-- Orta: İşlem Sorusu -->
+      <div class="hud-question-card" id="questionCard">
+        <div class="question-text" id="questionText">7 x 8 = ?</div>
+        <div class="combo-badge hidden" id="comboBadge">2x KOMBO!</div>
+      </div>
+
+      <!-- Sağ: Canlar + Ses -->
+      <div class="hud-box right-group">
+        <div class="lives-container" id="livesContainer">
+          <img src="Free Icon Pack v3.1 (Basic)/Main/Heart/64px/Heart 1st 64px.png" class="heart-icon" id="heart-1" alt="Can">
+          <img src="Free Icon Pack v3.1 (Basic)/Main/Heart/64px/Heart 1st 64px.png" class="heart-icon" id="heart-2" alt="Can">
+          <img src="Free Icon Pack v3.1 (Basic)/Main/Heart/64px/Heart 1st 64px.png" class="heart-icon" id="heart-3" alt="Can">
+        </div>
+        <button id="soundToggleBtn" class="icon-btn" title="Ses Ac/Kapat">
+          <img id="soundIcon" src="Free Icon Pack v3.1 (Basic)/Main/Sound ON/64w/Sound ON 64px.png" alt="Ses">
+        </button>
+      </div>
+    </header>
+
+    <!-- Kırmızı Flash Overlay -->
+    <div id="flash-overlay"></div>
+
+    <!-- =====================================================
+         BAŞLANGIÇ / AYARLAR EKRANI
+         ===================================================== -->
+    <div id="start-modal" class="modal-overlay">
+      <div class="modal-content playful-card start-card">
+
+        <!-- Başlık -->
+        <div class="title-banner">
+          <img src="Free Icon Pack v3.1 (Basic)/Main/Star/256px/Golden Star 1st 256px.png" class="title-star spin-left" alt="Yildiz">
+          <div class="title-block">
+            <h1 class="game-title">MATH SLICER</h1>
+            <p class="game-sub">Carpim Ninjas'i</p>
+          </div>
+          <img src="Free Icon Pack v3.1 (Basic)/Main/Star/256px/Golden Star 1st 256px.png" class="title-star spin-right" alt="Yildiz">
+        </div>
+
+        <!-- ─── Bölüm 1: İşlem Tipi ─── -->
+        <div class="settings-section">
+          <div class="settings-label">
+            <span class="settings-icon">📐</span>
+            <span>ISLEM TIPI</span>
+          </div>
+          <div class="settings-grid two-col">
+            <button class="sel-btn active" data-group="optype" data-val="standard">
+              <img src="wired-flat-2152-multiply-hover-multiply.jpg" alt="Klasik 1-10" class="mode-icon" />
+              <span class="sel-title">Klasik 1-10</span>
+              <span class="sel-desc">Tum carpim tablosu</span>
+            </button>
+            <button class="sel-btn" data-group="optype" data-val="easy">
+              <img src="system-solid-4014-calculator-simple-hover-pinch.webp" alt="Kolay 1-5" class="mode-icon" />
+              <span class="sel-title">Kolay 1-5</span>
+              <span class="sel-desc">Baslangic seviyesi</span>
+            </button>
+            <button class="sel-btn" data-group="optype" data-val="hard">
+              <img src="wired-flat-476-gamepad-hover-pinch.jpg" alt="İki Basamaklı" class="mode-icon" />
+              <span class="sel-title">İki Basamaklı</span>
+              <span class="sel-desc">12x4, 15x3 tarzı</span>
+            </button>
+            <button class="sel-btn" data-group="optype" data-val="custom">
+              <img src="wired-outline-1308-hand-touch-pad-hover-pinch.jpg" alt="Özel Tablo" class="mode-icon" />
+              <span class="sel-title">Özel Tablo</span>
+              <span class="sel-desc">Tek sayının katları</span>
+            </button>
+          </div>
+
+          <!-- Özel Tablo → hangi sayı? -->
+          <div id="custom-row" class="custom-row hidden">
+            <span class="custom-label">Hangi sayının tablosu?</span>
+            <div class="custom-chips" id="customChips">
+              <!-- 2 – 12 arası butonlar JS ile üretilir -->
+            </div>
+          </div>
+        </div>
+
+        <!-- ─── Bölüm 2: Hız Seviyesi ─── -->
+        <div class="settings-section">
+          <div class="settings-label">
+            <span class="settings-icon">⚡</span>
+            <span>HIZ SEVIYESI</span>
+          </div>
+          <div class="settings-grid three-col">
+            <button class="sel-btn" data-group="speed" data-val="slow">
+              <img src="wired-outline-3243-podium-star-third-hover-pinch.webp" alt="Rahat" class="speed-icon" />
+              <span class="sel-title">Rahat</span>
+              <span class="sel-desc">Yeni ogreniyorum</span>
+            </button>
+            <button class="sel-btn active" data-group="speed" data-val="normal">
+              <img src="wired-outline-3242-podium-star-second-hover-pinch.webp" alt="Normal" class="speed-icon" />
+              <span class="sel-title">Normal</span>
+              <span class="sel-desc">Dengeli</span>
+            </button>
+            <button class="sel-btn" data-group="speed" data-val="fast">
+              <img src="wired-outline-3241-podium-star-first-hover-pinch.webp" alt="Ninja" class="speed-icon" />
+              <span class="sel-title">Ninja</span>
+              <span class="sel-desc">Uzman modu</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Kural Önizlemesi -->
+        <div class="rules-row">
+          <div class="rule-chip">
+            <img src="wired-flat-37-check-hover-pinch.webp" alt="Doğru" class="info-badge-icon" />
+            <span><b>Dogru</b> = +10 Puan</span>
+          </div>
+          <div class="rule-chip">
+            <img src="wired-flat-38-cross-hover-pinch.webp" alt="Yanlış" class="info-badge-icon" />
+            <span><b>Yanlis</b> = 1 Can</span>
+          </div>
+          <div class="rule-chip">
+            <img src="wired-flat-468-bomb-in-reveal.webp" alt="Bomba" class="info-badge-icon" />
+            <span><b>Bomba</b> = 1 Can Patlar!</span>
+          </div>
+        </div>
+
+        <button id="startPlayBtn" class="btn play-btn primary-btn pulse">
+          <span>OYUNA BAŞLA</span>
+          <img src="wired-flat-1600-knife.svg" alt="Bıçak" class="btn-knife-icon" />
+        </button>
+
+        <!-- PWA Uygulamayı Yükle Butonu -->
+        <button id="installAppBtn" class="btn install-app-btn hidden" type="button">
+          <span class="install-icon">📲</span>
+          <span>Uygulamayı Yükle</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- =====================================================
+         OYUN SONU EKRANI
+         ===================================================== -->
+    <div id="game-over-modal" class="modal-overlay hidden">
+      <div class="modal-content playful-card gameover-card">
+
+        <div class="trophy-wrap">
+          <img src="Free Icon Pack v3.1 (Basic)/Item/Trophy/256w/Golden Trophy 1st 256px.png" class="trophy-img" alt="Kupa">
+        </div>
+
+        <h2 id="gameover-title">OYUN BITTI!</h2>
+        <p id="gameover-quote" class="gameover-quote">Harika bir performans!</p>
+
+        <!-- Yıldız Ödülleri -->
+        <div class="stars-row">
+          <img src="Free Icon Pack v3.1 (Basic)/Main/Star/256px/Golden Star 1st 256px.png" class="star-award" id="star1" alt="Yildiz">
+          <img src="Free Icon Pack v3.1 (Basic)/Main/Star/256px/Golden Star 1st 256px.png" class="star-award" id="star2" alt="Yildiz">
+          <img src="Free Icon Pack v3.1 (Basic)/Main/Star/256px/Golden Star 1st 256px.png" class="star-award" id="star3" alt="Yildiz">
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <span class="stat-label">Toplam Puan</span>
+            <span id="finalScore" class="stat-val highlight">0</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Dogru Dilim</span>
+            <span id="finalCorrect" class="stat-val">0</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">En Iyi Kombo</span>
+            <span id="finalMaxCombo" class="stat-val">0x</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">En Yuksek Rekor</span>
+            <span id="highScore" class="stat-val gold">0</span>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button id="restartBtn" class="btn play-btn">TEKRAR OYNA</button>
+          <button id="menuBtn" class="btn secondary-btn">ANA MENU</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- =====================================================
+         iOS SAFARI PWA YÜKLEME REHBERİ
+         ===================================================== -->
+    <div id="iosInstallModal" class="modal-overlay hidden">
+      <div class="modal-content playful-card ios-install-card">
+        <div class="ios-install-header">
+          <span class="ios-install-badge">📱 iPhone & iPad</span>
+          <h3>Uygulamayı Ana Ekrana Ekle</h3>
+        </div>
+        <div class="ios-install-steps">
+          <div class="ios-step">
+            <div class="step-num">1</div>
+            <p>Safari tarayıcısının altındaki <b>Paylaş</b> (kare içinde yukarı ok ⎋) butonuna dokunun.</p>
+          </div>
+          <div class="ios-step">
+            <div class="step-num">2</div>
+            <p>Açılan menüyü aşağı kaydırıp <b>"Ana Ekrana Ekle"</b> seçeneğini seçin.</p>
+          </div>
+          <div class="ios-step">
+            <div class="step-num">3</div>
+            <p>Sağ üstteki <b>"Ekle"</b>ye dokunun. Artık uygulama gibi tam ekran açılacak! 🎉</p>
+          </div>
+        </div>
+        <button id="closeIosInstallBtn" class="btn secondary-btn" style="width: 100%;">Anladım</button>
+      </div>
+    </div>
+
+  </div><!-- /game-container -->
+
+  <script src="game.js"></script>
+</body>
+</html>
