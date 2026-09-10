@@ -357,9 +357,10 @@
   let state = 'menu';             // 'menu' | 'playing' | 'gameover'
 
   // Settings (set from UI before game starts)
-  let opType      = 'standard';   // 'standard'|'easy'|'hard'|'custom'
+  let gameMode    = 'product';    // 'product' | 'factor'
+  let opType      = '1x1';        // '1x1' | '2x1' | '2x2' | 'mixed' | 'custom'
   let customNum   = 7;            // used when opType === 'custom'
-  let speedMode   = 'normal';     // 'slow'|'normal'|'fast'
+  let speedMode   = 'normal';     // 'slow' | 'normal' | 'fast'
 
   // Per-game vars
   let score = 0, lives = 3, combo = 0, maxCombo = 0, correctCount = 0;
@@ -407,11 +408,43 @@
      SPEED CONFIG
      ================================================================ */
   function speedCfg() {
-    // returns { gravity, gravityMin, peakMin, peakMax, waveDelay, distractors }
+    // returns { gravity, gravMin, peakMin, peakMax, nextWaveMs, driftMult, spinMult, distractors }
     switch (speedMode) {
-      case 'slow':   return { gravity: .18, gravMin: .14, peakMin: .10, peakMax: .25, delay: 80, distractors: 2 };
-      case 'fast':   return { gravity: .32, gravMin: .26, peakMin: .18, peakMax: .32, delay: 25, distractors: 4 };
-      default:       return { gravity: .24, gravMin: .18, peakMin: .14, peakMax: .28, delay: 48, distractors: 3 };
+      case 'slow':
+      case 'yavas':
+        return {
+          gravity: 0.10,     // Düşük yerçekimi (havada uzun süre süzülme ve ağır çekim hissi)
+          gravMin: 0.08,
+          peakMin: 0.22,
+          peakMax: 0.36,
+          nextWaveMs: 2800,  // Dalgalar arası 2.8 saniye sakin okuma/düşünme molası
+          driftMult: 0.35,   // Düşük yatay salınım (merkezde yumuşak yay çizme)
+          spinMult: 0.025,   // Yavaş dönme (meyvedeki sayının rahatça okunabilmesi için)
+          distractors: 2
+        };
+      case 'fast':
+      case 'hizli':
+        return {
+          gravity: 0.30,
+          gravMin: 0.25,
+          peakMin: 0.15,
+          peakMax: 0.28,
+          nextWaveMs: 650,
+          driftMult: 1.15,
+          spinMult: 0.065,
+          distractors: 4
+        };
+      default: // normal / orta
+        return {
+          gravity: 0.20,
+          gravMin: 0.16,
+          peakMin: 0.16,
+          peakMax: 0.30,
+          nextWaveMs: 1100,
+          driftMult: 0.75,
+          spinMult: 0.045,
+          distractors: 3
+        };
     }
   }
 
@@ -419,27 +452,71 @@
      QUESTION GENERATOR
      ================================================================ */
   function generateQuestion() {
+    // 1. Basamak türüne göre çarpanları belirle
     switch (opType) {
-      case 'easy':
-        curA = rng(1, 5); curB = rng(1, 5);
+      case '1x1':
+        curA = rng(1, 9);
+        curB = rng(1, 9);
         break;
-      case 'hard':
-        // two-digit × one-digit style
-        curA = rng(11, 19); curB = rng(2, 9);
+
+      case '2x1':
+        curA = rng(10, 99);
+        curB = rng(2, 9);
+        if (Math.random() < 0.5) { const t = curA; curA = curB; curB = t; }
         break;
+
+      case '2x2':
+        curA = rng(10, 99);
+        curB = rng(10, 99);
+        break;
+
+      case 'mixed': {
+        const subTypes = ['1x1', '2x1', '2x2'];
+        const chosen = subTypes[Math.floor(Math.random() * subTypes.length)];
+        if (chosen === '1x1') {
+          curA = rng(1, 9);
+          curB = rng(1, 9);
+        } else if (chosen === '2x1') {
+          curA = rng(10, 99);
+          curB = rng(2, 9);
+          if (Math.random() < 0.5) { const t = curA; curA = curB; curB = t; }
+        } else {
+          curA = rng(10, 99);
+          curB = rng(10, 99);
+        }
+        break;
+      }
+
       case 'custom':
-        curA = customNum; curB = rng(1, 12);
-        // randomly flip
-        if (Math.random() < .5) { const t = curA; curA = curB; curB = t; }
+        curA = customNum;
+        curB = rng(1, 12);
+        if (Math.random() < 0.5) { const t = curA; curA = curB; curB = t; }
         break;
-      default: // standard
-        curA = rng(2, 10); curB = rng(2, 10);
+
+      default: // default to 1x1
+        curA = rng(1, 9);
+        curB = rng(1, 9);
         break;
     }
-    targetAnswer = curA * curB;
 
-    // Canvas uses ASCII, HTML element renders fine
-    questionText.textContent = `${curA} \u00D7 ${curB} = ?`;
+    const product = curA * curB;
+
+    // 2. Oyun moduna göre hedef cevap ve gösterilecek metin
+    if (gameMode === 'factor') {
+      // Çarpanı Bul (Eksik Sayıyı Bulma) Modu: a × ? = c veya ? × b = c
+      const hideFirst = Math.random() < 0.5;
+      if (hideFirst) {
+        targetAnswer = curA;
+        questionText.textContent = `? \u00D7 ${curB} = ${product}`;
+      } else {
+        targetAnswer = curB;
+        questionText.textContent = `${curA} \u00D7 ? = ${product}`;
+      }
+    } else {
+      // Çarpımı Bul (Klasik) Modu: a × b = ?
+      targetAnswer = product;
+      questionText.textContent = `${curA} \u00D7 ${curB} = ?`;
+    }
 
     questionCard.classList.remove('bump');
     void questionCard.offsetWidth;
@@ -450,31 +527,70 @@
 
   function generateDistractors(count) {
     const pool = new Set();
-    const candidates = [
-      (curA + 1) * curB,
-      (curA - 1) * curB,
-      curA * (curB + 1),
-      curA * (curB - 1),
-      targetAnswer + 1,
-      targetAnswer - 1,
-      targetAnswer + 5,
-      targetAnswer - 5,
-      targetAnswer + 10,
-      targetAnswer - 10,
-      curA + curB,
-    ];
-    candidates.sort(() => Math.random() - .5);
-    for (const c of candidates) {
-      if (c > 0 && c !== targetAnswer && !pool.has(c)) {
-        pool.add(c);
-        if (pool.size >= count) break;
+
+    if (gameMode === 'factor') {
+      // Çarpanı bul modu: Çeldiriciler eksik çarpana yakın gerçekçi sayılardan üretilir
+      const offsets = [-3, -2, -1, 1, 2, 3, 4, -4, 5, -5];
+      offsets.sort(() => Math.random() - 0.5);
+      for (const off of offsets) {
+        const v = targetAnswer + off;
+        if (v > 0 && v !== targetAnswer && !pool.has(v)) {
+          pool.add(v);
+          if (pool.size >= count) break;
+        }
       }
+      let attempts = 0;
+      while (pool.size < count && attempts < 40) {
+        attempts++;
+        const delta = (Math.random() < 0.5 ? 1 : -1) * rng(1, 8);
+        const v = targetAnswer + delta;
+        if (v > 0 && v !== targetAnswer) pool.add(v);
+      }
+      let fill = 1;
+      while (pool.size < count) {
+        if (fill !== targetAnswer && !pool.has(fill)) pool.add(fill);
+        fill++;
+      }
+      return [...pool].slice(0, count);
+    } else {
+      // Çarpımı bul modu: Çeldiriciler çarpım sonucuna yakın sayılardan üretilir
+      const candidates = [
+        (curA + 1) * curB,
+        (curA - 1) * curB,
+        curA * (curB + 1),
+        curA * (curB - 1),
+        targetAnswer + 1,
+        targetAnswer - 1,
+        targetAnswer + 2,
+        targetAnswer - 2,
+        targetAnswer + 5,
+        targetAnswer - 5,
+        targetAnswer + 10,
+        targetAnswer - 10,
+        curA + curB,
+      ];
+      candidates.sort(() => Math.random() - 0.5);
+      for (const c of candidates) {
+        if (c > 0 && c !== targetAnswer && !pool.has(c)) {
+          pool.add(c);
+          if (pool.size >= count) break;
+        }
+      }
+      let attempts = 0;
+      while (pool.size < count && attempts < 40) {
+        attempts++;
+        const maxDelta = Math.max(12, Math.floor(targetAnswer * 0.2));
+        const delta = (Math.random() < 0.5 ? 1 : -1) * rng(1, maxDelta);
+        const v = targetAnswer + delta;
+        if (v > 0 && v !== targetAnswer) pool.add(v);
+      }
+      let fill = 2;
+      while (pool.size < count) {
+        if (fill !== targetAnswer && !pool.has(fill)) pool.add(fill);
+        fill++;
+      }
+      return [...pool].slice(0, count);
     }
-    while (pool.size < count) {
-      const v = targetAnswer + (rng(1, 15) * (Math.random() < .5 ? 1 : -1));
-      if (v > 0 && v !== targetAnswer) pool.add(v);
-    }
-    return [...pool].slice(0, count);
   }
 
   /* ================================================================
@@ -493,11 +609,13 @@
       this.x = 0; this.y = 0;
       this.vx = 0; this.vy = 0;
       this.rotation = Math.random() * Math.PI * 2;
-      this.spin     = (Math.random() - .5) * 0.06;
+
+      const cfg = speedCfg();
+      const spinScale = cfg.spinMult || 0.045;
+      this.spin     = (Math.random() - .5) * spinScale;
       this.sliced   = false;
       this.fell     = false;
 
-      const cfg = speedCfg();
       this.gravity = cfg.gravMin + Math.random() * (cfg.gravity - cfg.gravMin);
 
       // Image assignment
@@ -506,7 +624,7 @@
         this.fruit = null;
         this.splashColors = ['#f97316', '#1a1a1a', '#fde047'];
       } else {
-        // Assign random fruit SVG (pineapple, peach, strawberry, apple)
+        // Assign random fruit SVG (pineapple, peach, strawberry, apple, banana)
         const pick = fruitImages.length > 0
           ? fruitImages[Math.floor(Math.random() * fruitImages.length)]
           : null;
@@ -527,9 +645,11 @@
       // Objects spawned left-of-center drift right; right-of-center drift left.
       const distFromCenter = W * 0.5 - startX;          // positive = left side, negative = right
       const dirSign        = Math.sign(distFromCenter) || 1;
-      // Clamp vx magnitude based on screen width so mobiles get gentler drift
-      const vxBase  = (W / 2 - startX) * 0.014;        // proportional toward center
-      const vxJitter= dirSign * Math.random() * (W * 0.006); // small same-direction jitter
+      const cfg            = speedCfg();
+      const drift          = cfg.driftMult || 0.75;
+      // Clamp vx magnitude based on screen width so objects form a gentle arch
+      const vxBase  = (W / 2 - startX) * 0.010 * drift;
+      const vxJitter= dirSign * Math.random() * (W * 0.003) * drift;
       this.vx = vxBase + vxJitter;
     }
 
@@ -673,13 +793,14 @@
       this.angle   = angle;   // cut angle
       this.side    = side;    // -1 | +1
 
-      const push = 5.5 + Math.random() * 4;
+      const isSlow = speedMode === 'slow' || speedMode === 'yavas';
+      const push = (isSlow ? 3.5 : 5.5) + Math.random() * (isSlow ? 2.5 : 4);
       const pa   = angle + Math.PI / 2;
-      this.vx  = Math.cos(pa) * push * side + (Math.random() - .5) * 2;
-      this.vy  = Math.sin(pa) * push * side - 2.8;
-      this.grav   = .40;
+      this.vx  = Math.cos(pa) * push * side + (Math.random() - .5) * (isSlow ? 1.2 : 2);
+      this.vy  = Math.sin(pa) * push * side - (isSlow ? 1.8 : 2.8);
+      this.grav   = isSlow ? 0.22 : 0.40;
       this.rot    = 0;
-      this.spin   = (0.09 + Math.random() * .11) * side;
+      this.spin   = ((isSlow ? 0.04 : 0.09) + Math.random() * (isSlow ? 0.05 : 0.11)) * side;
       this.alpha  = 1;
     }
 
@@ -825,8 +946,8 @@
       ...distractors.map(d => ({ isTarget: false, value: d, isBomb: false })),
     ];
 
-    // Bomb: available after a few correct answers or hard mode
-    const bombChance = opType === 'hard' ? .32 : (correctCount >= 3 ? .22 : 0);
+    // Bomb: available after a few correct answers or advanced modes
+    const bombChance = (opType === '2x2' || opType === 'mixed') ? .30 : (correctCount >= 3 ? .20 : 0);
     if (Math.random() < bombChance) {
       spawnList.push({ isTarget: false, value: 0, isBomb: true });
     }
@@ -937,8 +1058,10 @@
       }
       isWaveActive = false;
 
-      // 0.8 saniye sonra yeni soruya geç ve yeni dalgayı fırlat
+      // Yeni soruya geç ve yeni dalgayı fırlat
       if (waveTimerId) clearTimeout(waveTimerId);
+      const isSlow = speedMode === 'slow' || speedMode === 'yavas';
+      const sliceDelay = isSlow ? 1200 : (speedMode === 'fast' || speedMode === 'hizli' ? 650 : 800);
       waveTimerId = setTimeout(() => {
         try {
           if (state === 'playing') {
@@ -948,7 +1071,7 @@
         } catch (err) {
           console.error("Yeni dalga başlatma hatası:", err);
         }
-      }, 800);
+      }, sliceDelay);
 
     } else {
       // Wrong answer
@@ -1251,16 +1374,20 @@
      UI: SETTINGS PANEL BUTTONS
      ================================================================ */
 
-  // Generic selector group
+  // Generic selector group (supports .sel-btn, .mode-capsule-btn, .speed-btn)
   function bindSelectors(group, callback) {
-    document.querySelectorAll(`.sel-btn[data-group="${group}"]`).forEach(btn => {
+    document.querySelectorAll(`[data-group="${group}"]`).forEach(btn => {
       btn.addEventListener('click', () => {
-        document.querySelectorAll(`.sel-btn[data-group="${group}"]`).forEach(b => b.classList.remove('active'));
+        document.querySelectorAll(`[data-group="${group}"]`).forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         callback(btn.dataset.val);
       });
     });
   }
+
+  bindSelectors('gamemode', val => {
+    gameMode = val;
+  });
 
   bindSelectors('optype', val => {
     opType = val;
@@ -1415,6 +1542,7 @@
             isWaveActive = false;
 
             if (waveTimerId) clearTimeout(waveTimerId);
+            const missDelay = speedCfg().nextWaveMs || 1000;
             waveTimerId = setTimeout(() => {
               try {
                 if (state === 'playing') {
@@ -1424,11 +1552,12 @@
               } catch (e) {
                 console.error("Target missed spawn error:", e);
               }
-            }, 800);
+            }, missDelay);
 
           } else if (allDone && isWaveActive) {
             isWaveActive = false;
             if (waveTimerId) clearTimeout(waveTimerId);
+            const doneDelay = Math.min(speedCfg().nextWaveMs || 1000, 1600);
             waveTimerId = setTimeout(() => {
               try {
                 if (state === 'playing') {
@@ -1438,7 +1567,7 @@
               } catch (e) {
                 console.error("All done spawn error:", e);
               }
-            }, 400);
+            }, doneDelay);
           }
         }
 
@@ -1551,6 +1680,27 @@
     closeIosInstallBtn.addEventListener('click', () => {
       iosInstallModal.classList.add('hidden');
     });
+  }
+
+  /* ================================================================
+     MOBİL KARŞILAMA EKRANI (SPLASH SCREEN)
+     ================================================================ */
+  function handleSplashScreen() {
+    const splash = document.getElementById('splash-screen');
+    if (splash) {
+      setTimeout(() => {
+        splash.classList.add('fade-out');
+        setTimeout(() => {
+          splash.remove();
+        }, 800);
+      }, 1800);
+    }
+  }
+
+  if (document.readyState === 'complete') {
+    handleSplashScreen();
+  } else {
+    window.addEventListener('load', handleSplashScreen);
   }
 
   preloadAssets();

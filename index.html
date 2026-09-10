@@ -3,17 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Math Slicer - Çarpım Tablosu Oyunu</title>
+  <title>Dilimle - Çarpım Tablosu Oyunu</title>
 
   <!-- PWA & Mobile Meta Tags -->
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#FF7E5F">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Math Slicer">
-  <link rel="apple-touch-icon" href="apple-touch-icon.png">
-  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
-  <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+  <meta name="apple-mobile-web-app-title" content="Dilimle">
+  <!-- Tarayıcı Sekme İkonu (Favicon) -->
+  <link rel="icon" type="image/png" sizes="32x32" href="icon1.png">
+  <link rel="shortcut icon" href="icon1.png">
+
+  <!-- Apple / iOS Ana Ekran İkonu -->
+  <link rel="apple-touch-icon" sizes="180x180" href="icon1.png">
 
   <!--
     Nunito: Türkçe karakterleri (İ, ı, Ş, ş, Ğ, ğ, Ç, ç, Ö, ö, Ü, ü) tam destekler.
@@ -26,6 +29,11 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <!-- Mobil Karşılama Ekranı (Splash Screen) -->
+  <div id="splash-screen" class="splash-overlay">
+    <img src="ekran1.png" alt="Dilimle - Ömer Hoca" class="splash-media" />
+  </div>
+
   <div id="game-container">
 
     <!-- Canvas: fizik, kesme, parçacık efektleri -->
@@ -84,38 +92,66 @@
         <div class="title-banner">
           <img src="star.png" class="title-star spin-left" alt="Yıldız">
           <div class="title-block">
-            <h1 class="game-title">MATH SLICER</h1>
-            <p class="game-sub">Çarpım Ninjası</p>
+            <h1 class="game-title">DİLİMLE</h1>
           </div>
           <img src="star.png" class="title-star spin-right" alt="Yıldız">
+        </div>
+
+        <!-- ─── Bölüm 0: Oyun Modu (En Üstte) ─── -->
+        <div class="settings-section">
+          <div class="settings-label">
+            <span class="settings-icon">🎯</span>
+            <span>OYUN MODU</span>
+          </div>
+          <div class="mode-capsule-grid">
+            <button class="mode-capsule-btn active" data-group="gamemode" data-val="product" type="button">
+              <span class="capsule-icon">✖️</span>
+              <div class="capsule-text">
+                <span class="capsule-title">Çarpımı Bul</span>
+                <span class="capsule-desc">a × b = ?</span>
+              </div>
+            </button>
+            <button class="mode-capsule-btn" data-group="gamemode" data-val="factor" type="button">
+              <span class="capsule-icon">🔍</span>
+              <div class="capsule-text">
+                <span class="capsule-title">Çarpanı Bul</span>
+                <span class="capsule-desc">a × ? = c</span>
+              </div>
+            </button>
+          </div>
         </div>
 
         <!-- ─── Bölüm 1: İşlem Tipi ─── -->
         <div class="settings-section">
           <div class="settings-label">
             <span class="settings-icon">📐</span>
-            <span>ISLEM TIPI</span>
+            <span>İŞLEM TİPİ</span>
           </div>
           <div class="settings-grid two-col">
-            <button class="sel-btn active" data-group="optype" data-val="standard">
-              <img src="wired-flat-2152-multiply-hover-multiply.jpg" alt="Klasik 1-10" class="mode-icon" />
-              <span class="sel-title">Klasik 1-10</span>
-              <span class="sel-desc">Tum carpim tablosu</span>
+            <button class="sel-btn active" data-group="optype" data-val="1x1" type="button">
+              <span class="digit-badge">1 × 1</span>
+              <span class="sel-title">1x1 Basamaklı</span>
+              <span class="sel-desc">1-9 × 1-9</span>
             </button>
-            <button class="sel-btn" data-group="optype" data-val="easy">
-              <img src="system-solid-4014-calculator-simple-hover-pinch.webp" alt="Kolay 1-5" class="mode-icon" />
-              <span class="sel-title">Kolay 1-5</span>
-              <span class="sel-desc">Baslangic seviyesi</span>
+            <button class="sel-btn" data-group="optype" data-val="2x1" type="button">
+              <span class="digit-badge">2 × 1</span>
+              <span class="sel-title">2x1 Basamaklı</span>
+              <span class="sel-desc">10-99 × 2-9</span>
             </button>
-            <button class="sel-btn" data-group="optype" data-val="hard">
-              <img src="wired-flat-476-gamepad-hover-pinch.jpg" alt="İki Basamaklı" class="mode-icon" />
-              <span class="sel-title">İki Basamaklı</span>
-              <span class="sel-desc">12x4, 15x3 tarzı</span>
+            <button class="sel-btn" data-group="optype" data-val="2x2" type="button">
+              <span class="digit-badge">2 × 2</span>
+              <span class="sel-title">2x2 Basamaklı</span>
+              <span class="sel-desc">10-99 × 10-99</span>
             </button>
-            <button class="sel-btn" data-group="optype" data-val="custom">
-              <img src="wired-outline-1308-hand-touch-pad-hover-pinch.jpg" alt="Özel Tablo" class="mode-icon" />
+            <button class="sel-btn" data-group="optype" data-val="mixed" type="button">
+              <span class="digit-badge">🎲</span>
+              <span class="sel-title">Karışık</span>
+              <span class="sel-desc">Tüm basamaklar</span>
+            </button>
+            <button class="sel-btn col-span-2" data-group="optype" data-val="custom" type="button">
+              <span class="digit-badge">⭐</span>
               <span class="sel-title">Özel Tablo</span>
-              <span class="sel-desc">Tek sayının katları</span>
+              <span class="sel-desc">Yalnızca seçilen sayının katları</span>
             </button>
           </div>
 
@@ -132,23 +168,20 @@
         <div class="settings-section">
           <div class="settings-label">
             <span class="settings-icon">⚡</span>
-            <span>HIZ SEVIYESI</span>
+            <span>HIZ SEVİYESİ</span>
           </div>
-          <div class="settings-grid three-col">
-            <button class="sel-btn" data-group="speed" data-val="slow">
-              <img src="wired-outline-3243-podium-star-third-hover-pinch.webp" alt="Rahat" class="speed-icon" />
-              <span class="sel-title">Rahat</span>
-              <span class="sel-desc">Yeni ogreniyorum</span>
+          <div class="speed-grid three-col">
+            <button class="speed-btn" data-group="speed" data-val="slow" type="button">
+              <span class="speed-title">Yavaş</span>
+              <span class="speed-desc">Yeni öğrenenler</span>
             </button>
-            <button class="sel-btn active" data-group="speed" data-val="normal">
-              <img src="wired-outline-3242-podium-star-second-hover-pinch.webp" alt="Normal" class="speed-icon" />
-              <span class="sel-title">Normal</span>
-              <span class="sel-desc">Dengeli</span>
+            <button class="speed-btn active" data-group="speed" data-val="normal" type="button">
+              <span class="speed-title">Orta</span>
+              <span class="speed-desc">Dengeli tempo</span>
             </button>
-            <button class="sel-btn" data-group="speed" data-val="fast">
-              <img src="wired-outline-3241-podium-star-first-hover-pinch.webp" alt="Ninja" class="speed-icon" />
-              <span class="sel-title">Ninja</span>
-              <span class="sel-desc">Uzman modu</span>
+            <button class="speed-btn" data-group="speed" data-val="fast" type="button">
+              <span class="speed-title">Hızlı</span>
+              <span class="speed-desc">Usta seviyesi</span>
             </button>
           </div>
         </div>

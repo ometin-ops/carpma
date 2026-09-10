@@ -1,4 +1,4 @@
-const CACHE_NAME = 'math-slicer-v1.1';
+const CACHE_NAME = 'math-slicer-v1.4';
 
 const ASSETS_TO_CACHE = [
   './',
@@ -6,6 +6,10 @@ const ASSETS_TO_CACHE = [
   'style.css',
   'game.js',
   'manifest.json',
+  'ekran1.png',
+  'icon1.png',
+  'icon2.jpg',
+  'icon2.png',
   'icon-192.png',
   'icon-512.png',
   'apple-touch-icon.png',
