@@ -1203,6 +1203,11 @@
     if (pauseModal) pauseModal.classList.add('hidden');
     hud.classList.remove('hidden');
 
+    if (pauseBtn) {
+      pauseBtn.style.display = 'flex';
+      pauseBtn.style.visibility = 'visible';
+    }
+
     // Canvas becomes the primary input surface during gameplay
     setCanvasActive(true);
 
