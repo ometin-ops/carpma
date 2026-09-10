@@ -16,12 +16,8 @@
      ASSETS & FRUITS
      ================================================================ */
   const ASSETS = {
-    heart:        'Free Icon Pack v3.1 (Basic)/Main/Heart/64px/Heart 1st 64px.png',
-    brokenHeart:  'Free Icon Pack v3.1 (Basic)/Main/Broken Heart/64w/Broken Heart 1st 64px.png',
-    bomb:         'Free Icon Pack v3.1 (Basic)/Item/Bomb/256px/Bomb 1st 256px.png',
-    star:         'Free Icon Pack v3.1 (Basic)/Main/Star/256px/Golden Star 1st 256px.png',
-    soundOn:      'Free Icon Pack v3.1 (Basic)/Main/Sound ON/64w/Sound ON 64px.png',
-    soundOff:     'Free Icon Pack v3.1 (Basic)/Main/Sound OFF/64w/Sound OFF 64px.png',
+    bomb: 'wired-flat-468-bomb-in-reveal.webp',
+    star: 'star.png',
   };
 
   const FRUIT_DEFS = [
@@ -370,6 +366,7 @@
   let highScore = parseInt(localStorage.getItem('math_slicer_hs') || '0', 10);
   let curA = 3, curB = 4, targetAnswer = 12;
   let isWaveActive = false, nextWaveTimer = 0;
+  let waveTimerId = null;
 
   // Entities
   let objects = [];     // SliceableObject[]
@@ -881,18 +878,22 @@
      SLICE HANDLER
      ================================================================ */
   function handleSlice(obj, cutAngle) {
-    if (obj.sliced) return;
+    if (!obj || obj.sliced) return;
     obj.sliced = true;
 
-    // Two half-pieces
-    halves.push(
-      new HalfPiece(obj.image, obj.fruit, obj.isBomb ? null : obj.value, obj.x, obj.y, obj.radius, cutAngle, -1),
-      new HalfPiece(obj.image, obj.fruit, obj.isBomb ? null : obj.value, obj.x, obj.y, obj.radius, cutAngle,  1),
-    );
+    try {
+      // Two half-pieces
+      halves.push(
+        new HalfPiece(obj.image, obj.fruit, obj.isBomb ? null : obj.value, obj.x, obj.y, obj.radius, cutAngle, -1),
+        new HalfPiece(obj.image, obj.fruit, obj.isBomb ? null : obj.value, obj.x, obj.y, obj.radius, cutAngle,  1),
+      );
+    } catch (err) {
+      console.warn("HalfPiece creation error:", err);
+    }
 
     if (obj.isBomb) {
-      sound.playExplosion();
-      shakeScreen(true);
+      try { sound.playExplosion(); } catch (e) {}
+      try { shakeScreen(true); } catch (e) {}
       loseLife();
       ftexts.push(new FloatingText('BOMBA!', obj.x, obj.y - 20, '#ef4444', 40));
       for (let i = 0; i < 30; i++) parts.push(new Particle(obj.x, obj.y, i % 2 ? '#f97316' : '#1a1a1a', 'smoke'));
@@ -908,7 +909,7 @@
     }
 
     // Play real knife slice sound for every fruit sliced
-    playSliceSound();
+    try { playSliceSound(); } catch (e) {}
 
     if (obj.isTarget) {
       combo++;
@@ -930,18 +931,33 @@
       for (let i = 0; i < 20; i++) parts.push(new Particle(obj.x, obj.y, '#facc15', 'star'));
       for (let i = 0; i < 14; i++) parts.push(new Particle(obj.x, obj.y, '#38bdf8', 'spark'));
 
-      generateQuestion();
-      isWaveActive   = false;
-      nextWaveTimer  = speedCfg().delay;
+      // Ekrandaki diğer meyvelerin hedef olma durumunu sıfırla (kaçırma hatasını engeller)
+      for (const o of objects) {
+        if (o !== obj) o.isTarget = false;
+      }
+      isWaveActive = false;
+
+      // 0.8 saniye sonra yeni soruya geç ve yeni dalgayı fırlat
+      if (waveTimerId) clearTimeout(waveTimerId);
+      waveTimerId = setTimeout(() => {
+        try {
+          if (state === 'playing') {
+            generateQuestion();
+            spawnWave();
+          }
+        } catch (err) {
+          console.error("Yeni dalga başlatma hatası:", err);
+        }
+      }, 800);
 
     } else {
       // Wrong answer
-      sound.playBuzzer();
-      shakeScreen(false);
+      try { sound.playBuzzer(); } catch (e) {}
+      try { shakeScreen(false); } catch (e) {}
       loseLife();
       combo = 0;
       comboBadge.classList.add('hidden');
-      ftexts.push(new FloatingText('YANLIS!', obj.x, obj.y - 20, '#ef4444', 36));
+      ftexts.push(new FloatingText('YANLIŞ!', obj.x, obj.y - 20, '#ef4444', 36));
       for (let i = 0; i < 16; i++) parts.push(new Particle(obj.x, obj.y, '#ef4444', 'spark'));
     }
   }
@@ -958,12 +974,15 @@
 
   function updateHUDLives() {
     heartEls.forEach((el, i) => {
+      if (!el) return;
       if (i < lives) {
-        el.src = ASSETS.heart;
+        el.classList.add('active');
         el.classList.remove('lost');
+        el.setAttribute('fill', '#FF4757');
       } else {
-        el.src = ASSETS.brokenHeart;
+        el.classList.remove('active');
         el.classList.add('lost');
+        el.setAttribute('fill', '#CBD5E1');
       }
     });
   }
@@ -1018,6 +1037,8 @@
     if (!sound.muted) {
       bgMusic.play().catch(err => console.log("Müzik başlatılamadı:", err));
     }
+    if (waveTimerId) clearTimeout(waveTimerId);
+
     state        = 'playing';
     score        = 0;
     lives        = 3;
@@ -1040,7 +1061,7 @@
     setCanvasActive(true);
 
     generateQuestion();
-    nextWaveTimer = speedCfg().delay;
+    spawnWave();
   }
 
   /* ================================================================
@@ -1269,9 +1290,23 @@
   /* ================================================================
      SOUND TOGGLE & AUDIO UNLOCK
      ================================================================ */
+  function updateSoundIcon() {
+    const soundOnPath = document.getElementById('soundOnPath');
+    const soundOffPath = document.getElementById('soundOffPath');
+    if (soundOnPath && soundOffPath) {
+      if (sound.muted) {
+        soundOnPath.classList.add('hidden');
+        soundOffPath.classList.remove('hidden');
+      } else {
+        soundOnPath.classList.remove('hidden');
+        soundOffPath.classList.add('hidden');
+      }
+    }
+  }
+
   function toggleMute() {
-    const on = sound.toggle();
-    soundIcon.src = on ? ASSETS.soundOn : ASSETS.soundOff;
+    sound.toggle();
+    updateSoundIcon();
     if (sound.muted) {
       bgMusic.pause();
     } else {
@@ -1329,6 +1364,7 @@
       bgMusic.pause();
       bgMusic.currentTime = 0;
     } catch (e) {}
+    if (waveTimerId) clearTimeout(waveTimerId);
     gameOverModal.classList.add('hidden');
     hud.classList.add('hidden');
     startModal.classList.remove('hidden');
@@ -1344,81 +1380,106 @@
   function gameLoop(currentTime) {
     requestAnimationFrame(gameLoop);
 
-    if (!currentTime) currentTime = performance.now();
-    // Delta time in seconds, clamped between 1ms and 50ms to prevent jumps on tab switch
-    const dtSec = Math.min(Math.max((currentTime - lastTime) / 1000, 0.001), 0.05);
-    lastTime = currentTime;
+    try {
+      if (!currentTime) currentTime = performance.now();
+      // Delta time in seconds, clamped between 1ms and 50ms to prevent jumps on tab switch
+      const dtSec = Math.min(Math.max((currentTime - lastTime) / 1000, 0.001), 0.05);
+      lastTime = currentTime;
 
-    // Normalised delta factor (1.0 at reference 60 FPS)
-    const dt = dtSec * 60;
+      // Normalised delta factor (1.0 at reference 60 FPS)
+      const dt = dtSec * 60;
 
-    ctx.clearRect(0, 0, W, H);
+      ctx.clearRect(0, 0, W, H);
 
-    if (state === 'playing') {
-      // Wave management
-      if (!isWaveActive) {
-        nextWaveTimer -= dt;
-        if (nextWaveTimer <= 0) spawnWave();
-      } else {
-        // Elastic overlap resolution each frame
-        resolveCollisions();
+      if (state === 'playing') {
+        if (isWaveActive) {
+          // Elastic overlap resolution each frame
+          resolveCollisions();
 
-        let allDone = true, targetMissed = false;
+          let allDone = true, targetMissed = false;
+          for (const o of objects) {
+            if (!o.sliced && !o.fell) allDone = false;
+            if (o.isTarget && o.fell && !o.sliced) {
+              targetMissed = true;
+              o.isTarget = false; // Tekrar tetiklenmesini engelle
+            }
+          }
+
+          if (targetMissed) {
+            try { sound.playBuzzer(); } catch (e) {}
+            try { shakeScreen(false); } catch (e) {}
+            loseLife();
+            combo = 0;
+            comboBadge.classList.add('hidden');
+            ftexts.push(new FloatingText('KAÇIRDIN!', W * .5, H * .45, '#f59e0b', 42));
+            isWaveActive = false;
+
+            if (waveTimerId) clearTimeout(waveTimerId);
+            waveTimerId = setTimeout(() => {
+              try {
+                if (state === 'playing') {
+                  generateQuestion();
+                  spawnWave();
+                }
+              } catch (e) {
+                console.error("Target missed spawn error:", e);
+              }
+            }, 800);
+
+          } else if (allDone && isWaveActive) {
+            isWaveActive = false;
+            if (waveTimerId) clearTimeout(waveTimerId);
+            waveTimerId = setTimeout(() => {
+              try {
+                if (state === 'playing') {
+                  generateQuestion();
+                  spawnWave();
+                }
+              } catch (e) {
+                console.error("All done spawn error:", e);
+              }
+            }, 400);
+          }
+        }
+
+        // Update & draw game objects
         for (const o of objects) {
-          if (!o.sliced && !o.fell) allDone = false;
-          if (o.isTarget && o.fell  && !o.sliced) targetMissed = true;
-        }
-
-        if (targetMissed) {
-          sound.playBuzzer();
-          shakeScreen(false);
-          loseLife();
-          combo = 0;
-          comboBadge.classList.add('hidden');
-          ftexts.push(new FloatingText('KACIRDIN!', W * .5, H * .45, '#f59e0b', 42));
-          generateQuestion();
-          isWaveActive  = false;
-          nextWaveTimer = speedCfg().delay + 10;
-        } else if (allDone) {
-          isWaveActive  = false;
-          nextWaveTimer = speedCfg().delay;
+          o.update(dt);
+          o.draw(ctx);
         }
       }
 
-      // Update & draw game objects
-      for (const o of objects) {
-        o.update(dt);
-        o.draw(ctx);
+      // Half pieces
+      for (let i = halves.length - 1; i >= 0; i--) {
+        const h = halves[i];
+        h.update(dt);
+        h.draw(ctx);
+        if (h.alpha <= 0 || h.y > H + 120) halves.splice(i, 1);
       }
-    }
 
-    // Half pieces
-    for (let i = halves.length - 1; i >= 0; i--) {
-      const h = halves[i];
-      h.update(dt);
-      h.draw(ctx);
-      if (h.alpha <= 0 || h.y > H + 120) halves.splice(i, 1);
-    }
+      // Particles
+      for (let i = parts.length - 1; i >= 0; i--) {
+        const p = parts[i];
+        p.update(dt);
+        p.draw(ctx);
+        if (p.alpha <= 0) parts.splice(i, 1);
+      }
 
-    // Particles
-    for (let i = parts.length - 1; i >= 0; i--) {
-      const p = parts[i];
-      p.update(dt);
-      p.draw(ctx);
-      if (p.alpha <= 0) parts.splice(i, 1);
-    }
+      // Floating texts
+      for (let i = ftexts.length - 1; i >= 0; i--) {
+        const ft = ftexts[i];
+        ft.update(dt);
+        ft.draw(ctx);
+        if (ft.alpha <= 0) ftexts.splice(i, 1);
+      }
 
-    // Floating texts
-    for (let i = ftexts.length - 1; i >= 0; i--) {
-      const ft = ftexts[i];
-      ft.update(dt);
-      ft.draw(ctx);
-      if (ft.alpha <= 0) ftexts.splice(i, 1);
-    }
+      // Blade trail
+      pruneBlade();
+      drawBlade();
 
-    // Blade trail
-    pruneBlade();
-    drawBlade();
+    } catch (err) {
+      console.error('gameLoop animation frame error:', err);
+    }
   }
 
   /* ================================================================

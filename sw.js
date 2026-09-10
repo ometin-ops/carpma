@@ -1,4 +1,4 @@
-const CACHE_NAME = 'math-slicer-v1.0';
+const CACHE_NAME = 'math-slicer-v1.1';
 
 const ASSETS_TO_CACHE = [
   './',
@@ -9,6 +9,8 @@ const ASSETS_TO_CACHE = [
   'icon-192.png',
   'icon-512.png',
   'apple-touch-icon.png',
+  'star.png',
+  'trophy.png',
   'bg.jpg',
   'Gemini_Generated_Image_2fczl92fczl92fcz.jpeg',
   'ninja.mp3',
@@ -35,15 +37,7 @@ const ASSETS_TO_CACHE = [
   'wired-flat-38-cross-hover-pinch.webp',
   'wired-flat-468-bomb-in-reveal.webp',
   'wired-flat-3542-shopping-basket-groceries-hover-pinch.jpg',
-  'wired-flat-3542-shopping-basket-groceries-hover-pinch.webp',
-  // Temel UI İkonları
-  'Free Icon Pack v3.1 (Basic)/Main/Heart/64w/Heart 64px.png',
-  'Free Icon Pack v3.1 (Basic)/Main/Sound ON/64w/Sound ON 64px.png',
-  'Free Icon Pack v3.1 (Basic)/Main/Sound OFF/64w/Sound OFF 64px.png',
-  'Free Icon Pack v3.1 (Basic)/Main/Star/64w/Star 64px.png',
-  'Free Icon Pack v3.1 (Basic)/Main/Trophy/256w/Trophy 256px.png',
-  'Free Icon Pack v3.1 (Basic)/UI/Replay/64px/Replay 2nd 64px.png',
-  'Free Icon Pack v3.1 (Basic)/UI/List/64px/List 2nd 64px.png'
+  'wired-flat-3542-shopping-basket-groceries-hover-pinch.webp'
 ];
 
 // Service Worker Kurulumu (Install)

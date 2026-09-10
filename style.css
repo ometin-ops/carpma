@@ -197,19 +197,27 @@ body {
 .right-group { gap: 14px; }
 .lives-container { display: flex; align-items: center; gap: 5px; }
 .heart-icon {
-  width: 34px; height: 34px;
-  object-fit: contain;
-  transition: transform .2s, filter .2s;
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,.15));
+  width: 30px; height: 30px;
+  fill: #FF4757;
+  transition: transform .25s cubic-bezier(.34,1.56,.64,1), fill .25s ease, filter .25s ease;
+  filter: drop-shadow(0 2px 4px rgba(255, 71, 87, 0.45));
+}
+.heart-icon.active {
+  fill: #FF4757;
+  transform: scale(1);
 }
 .heart-icon.lost {
+  fill: #CBD5E1;
+  filter: none;
+  opacity: 0.65;
+  transform: scale(0.85);
   animation: heartShake .4s ease;
 }
 @keyframes heartShake {
-  0%   { transform: scale(1.4) rotate(15deg); }
-  30%  { transform: scale(.9)  rotate(-15deg); }
-  60%  { transform: scale(1.1) rotate(8deg); }
-  100% { transform: scale(1)   rotate(0deg); }
+  0%   { transform: scale(1.3) rotate(15deg); }
+  30%  { transform: scale(.8)  rotate(-15deg); }
+  60%  { transform: scale(1.05) rotate(8deg); }
+  100% { transform: scale(0.85)   rotate(0deg); }
 }
 
 .icon-btn {
@@ -223,7 +231,10 @@ body {
 }
 .icon-btn:hover { background: #f8fafc; transform: translateY(-2px); box-shadow: 0 5px 12px rgba(100, 116, 139, 0.18); }
 .icon-btn:active { transform: translateY(1px); }
-.icon-btn img { width: 24px; height: 24px; object-fit: contain; }
+.icon-btn svg,
+.icon-btn img { width: 22px; height: 22px; object-fit: contain; }
+.sound-icon { fill: #374151; transition: fill .15s ease; }
+.icon-btn:hover .sound-icon { fill: #111827; }
 
 /* ── Flash & Shake ──────────────────────────────────────── */
 #flash-overlay {
