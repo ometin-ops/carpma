@@ -68,47 +68,59 @@ body {
   pointer-events: none;
 }
 
-/* ── HUD ────────────────────────────────────────────────── */
-#hud {
+/* ── Üst HUD Kapsayıcısı ────────────────────────────────── */
+.hud-container, header#hud {
   position: absolute;
-  top: max(14px, env(safe-area-inset-top, 14px)); left: 0; width: 100%;
-  padding: 0 12px;
+  top: max(10px, env(safe-area-inset-top, 10px));
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
   align-items: center;
   justify-content: space-between;
+  width: 100%;
+  max-width: 500px; /* Mobilde kenarlara çok yapışmasın */
+  margin: 0 auto;
+  padding: 0 10px;
+  box-sizing: border-box;
   gap: 8px;
-  z-index: 10;
+  z-index: 50;
   pointer-events: none;
   transition: opacity .3s, transform .3s;
 }
-#hud.hidden { opacity: 0; transform: translateY(-28px); pointer-events: none; }
+#hud.hidden {
+  opacity: 0;
+  transform: translateX(-50%) translateY(-28px);
+  pointer-events: none;
+}
 
 .hud-box {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  border-radius: 18px;
-  padding: 6px 14px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22), 0 3px 0 #cbd5e1;
-  border: 3px solid #ffffff;
+  border-radius: 16px;
+  padding: 6px 10px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18), 0 2px 0 #cbd5e1;
+  border: 2px solid #ffffff;
   pointer-events: auto;
   flex-shrink: 0;          /* never let side boxes compress */
 }
 
+/* Sol Puan Kapsülü */
 .score-card,
 .score-container {
   display: flex;
   align-items: center;
-  gap: 8px;
-  min-width: 90px;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 6px 10px;
 }
 
 .score-basket-icon {
-  width: 32px;
-  height: 32px;
+  width: 26px;
+  height: 26px;
   object-fit: contain;
   border-radius: 6px;
   display: inline-block;
@@ -117,7 +129,7 @@ body {
 }
 
 .hud-icon {
-  width: 34px; height: 34px;
+  width: 26px; height: 26px;
   object-fit: contain;
   filter: drop-shadow(0 2px 4px rgba(0,0,0,.15));
 }
@@ -125,33 +137,32 @@ body {
 .hud-info { display: flex; flex-direction: column; }
 .hud-label {
   font-family: var(--font-body);
-  font-size: 9px; font-weight: 900;
+  font-size: 8px; font-weight: 900;
   letter-spacing: 1.2px; color: #64748b;
   text-transform: uppercase;
 }
 .hud-value {
   font-family: var(--font-title);
-  font-size: clamp(18px, 4vw, 24px); font-weight: 800;
+  font-size: 18px; font-weight: 800;
   color: #1e293b; line-height: 1.1;
 }
 
-/* ── Soru Kartı (Vibrant Pastel Coral/Sunset) ───────────── */
-.hud-question-card {
+/* ── Ortadaki Turuncu Hedef İşlem Kartı ─────────────────── */
+.target-box, #targetQuestionBox, .hud-question-card {
   position: relative;
-  /* Flex-grow so it fills remaining HUD space,
-     but never pushes side boxes off screen */
-  flex: 1 1 auto;
-  min-width: 0;
-  max-width: 320px;
-  margin-top: 8px;
-  background: linear-gradient(135deg, #ff7e5f 0%, #feb47b 100%);
-  border: 3.5px solid #ffffff;
-  border-radius: 20px;
-  padding: 10px 20px;
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28), 0 4px 0 #e06040;
+  flex: 0 0 auto; /* Kesinlikle büzüşmesin */
+  min-width: 140px;
+  max-width: 180px;
+  padding: 8px 14px;
+  background: linear-gradient(135deg, #ff8a65, #ff7043);
+  border: 2px solid #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(255, 112, 67, 0.35);
   display: flex;
   align-items: center;
   justify-content: center;
+  white-space: nowrap; /* Asla alt satıra geçmesin */
+  z-index: 10;
   pointer-events: auto;
   overflow: visible;
 }
@@ -160,18 +171,19 @@ body {
 }
 @keyframes bumpQ {
   0%   { transform: scale(1); }
-  50%  { transform: scale(1.1) rotate(-1.5deg); }
+  50%  { transform: scale(1.08) rotate(-1.5deg); }
   100% { transform: scale(1); }
 }
 
-.question-text {
+/* İşlem Yazısı */
+.target-text, #targetEquation, .question-text {
   font-family: var(--font-title);
-  font-size: clamp(20px, 5.5vw, 26px);
+  font-size: 20px; /* Mobilde sıkışmaması için ideal punto */
   font-weight: 800;
-  line-height: 1;
   color: #ffffff;
-  letter-spacing: 1.5px;
-  text-shadow: 0 2px 5px rgba(0, 0, 0, 0.22);
+  letter-spacing: 1px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  line-height: 1;
   white-space: nowrap;
   text-align: center;
 }
@@ -180,8 +192,8 @@ body {
   position: absolute; bottom: -18px;
   background: linear-gradient(135deg, #facc15, #f59e0b); color: #451a03;
   font-family: var(--font-title);
-  font-size: 12px; font-weight: 800;
-  padding: 2px 12px; border-radius: 14px;
+  font-size: 11px; font-weight: 800;
+  padding: 2px 10px; border-radius: 14px;
   border: 2px solid #ffffff;
   box-shadow: 0 4px 10px rgba(245, 158, 11, 0.35);
   white-space: nowrap;
@@ -193,11 +205,24 @@ body {
   to   { transform: translateY(-4px) scale(1.06); }
 }
 
-/* Canlar & Ses */
-.right-group { gap: 14px; }
-.lives-container { display: flex; align-items: center; gap: 5px; }
+/* Sağ Canlar & Kontrol Butonları Kapsülü */
+.right-hud-group, .right-group {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+}
+
+.lives-container {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .heart-icon {
-  width: 30px; height: 30px;
+  width: 22px;
+  height: 22px;
   fill: #FF4757;
   transition: transform .25s cubic-bezier(.34,1.56,.64,1), fill .25s ease, filter .25s ease;
   filter: drop-shadow(0 2px 4px rgba(255, 71, 87, 0.45));
@@ -220,19 +245,56 @@ body {
   100% { transform: scale(0.85)   rotate(0deg); }
 }
 
+/* Sağdaki butonların boyutunu hafif kompakt yap ki ortaya daha çok alan kalsın */
+.hud-circle-btn {
+  background: rgba(255, 255, 255, 0.92);
+  border: 1.5px solid #e2e8f0;
+  outline: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  transition: transform 0.1s ease, background 0.15s ease;
+}
+.hud-circle-btn:hover {
+  background: #f8fafc;
+  transform: translateY(-1px);
+}
+.hud-circle-btn:active {
+  transform: scale(0.92);
+}
+.hud-circle-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
 .icon-btn {
-  background: #ffffff; border: 2px solid #e2e8f0;
-  border-radius: 14px;
-  width: 40px; height: 40px;
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer; outline: none;
-  box-shadow: 0 3px 8px rgba(100, 116, 139, 0.12);
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  outline: none;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
   transition: all .15s ease;
 }
-.icon-btn:hover { background: #f8fafc; transform: translateY(-2px); box-shadow: 0 5px 12px rgba(100, 116, 139, 0.18); }
-.icon-btn:active { transform: translateY(1px); }
+.icon-btn:hover {
+  background: #f8fafc;
+  transform: translateY(-1px);
+}
+.icon-btn:active {
+  transform: scale(0.92);
+}
 .icon-btn svg,
-.icon-btn img { width: 22px; height: 22px; object-fit: contain; }
+.icon-btn img { width: 18px; height: 18px; object-fit: contain; }
 .sound-icon { fill: #374151; transition: fill .15s ease; }
 .icon-btn:hover .sound-icon { fill: #111827; }
 
@@ -670,121 +732,184 @@ body {
 .install-app-btn {
   width: 100%;
   margin-top: 10px;
-  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
-  color: #ffffff;
-  font-family: var(--font-title);
-  font-size: 16px;
-  font-weight: 800;
-  padding: 11px 18px;
-  border: 3px solid #ffffff;
-  border-radius: 20px;
-  box-shadow: 0 5px 14px rgba(2, 132, 199, 0.35), 0 3px 0 #075985;
-  display: inline-flex;
+  padding: 12px;
+  background: #ffffff;
+  color: #1f2937;
+  border: 2px solid #e5e7eb;
+  border-radius: 14px;
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 15px;
+  display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   cursor: pointer;
-  letter-spacing: .4px;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-.install-app-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 18px rgba(2, 132, 199, 0.45), 0 3px 0 #075985;
-}
-.install-app-btn:active {
-  transform: translateY(1px);
-  box-shadow: 0 2px 6px rgba(2, 132, 199, 0.25), 0 1px 0 #075985;
-}
-.install-app-btn.hidden {
-  display: none !important;
-}
-.install-icon {
-  font-size: 19px;
-  line-height: 1;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  transition: all 0.2s ease;
 }
 
-/* ── iOS Safari PWA Rehber Kartı ───────────────────────── */
-.ios-install-card {
-  max-width: 360px;
-  padding: 24px 20px 20px 20px;
-  text-align: left;
+.install-app-btn:hover {
+  background: #f9fafb;
+  border-color: #cbd5e1;
 }
-.ios-install-header {
-  text-align: center;
-  margin-bottom: 16px;
+
+.install-app-btn:active {
+  transform: scale(0.98);
 }
-.ios-install-badge {
-  display: inline-block;
-  background: #f1f5f9;
-  color: #475569;
-  font-family: var(--font-body);
-  font-size: 12px;
-  font-weight: 800;
-  padding: 4px 12px;
+
+.install-app-btn.pulse {
+  animation: pulseBtn 2s infinite;
+}
+
+/* ── Bilgi / Kurulum Rehberi Modalı ─────────────────────── */
+.modal-card {
+  background: #ffffff;
   border-radius: 20px;
-  margin-bottom: 6px;
+  padding: 24px 20px;
+  max-width: 380px;
+  width: 90%;
+  text-align: left;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.25);
+  animation: popIn 0.25s cubic-bezier(.34,1.56,.64,1);
 }
-.ios-install-header h3 {
+
+.modal-card h3 {
   font-family: var(--font-title);
   font-size: 20px;
   font-weight: 800;
   color: #1e293b;
-  margin: 0;
+  margin: 0 0 14px 0;
+  text-align: center;
 }
-.ios-install-steps {
+
+.guide-content {
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: #334155;
+  line-height: 1.6;
+}
+
+.guide-content p {
+  margin: 4px 0;
+}
+
+/* ── Duraklatma Modalı ─────────────────────────────────── */
+.pause-card {
+  text-align: center;
+  padding: 28px 24px;
+  border-radius: 24px;
+  background: #ffffff;
+  max-width: 320px;
+  width: 90%;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+  animation: popIn 0.25s cubic-bezier(.34, 1.56, .64, 1);
+}
+
+.pause-card h2 {
+  font-family: var(--font-title);
+  font-size: 24px;
+  font-weight: 800;
+  color: #1f2937;
+  margin: 0 0 6px 0;
+}
+
+.pause-subtitle {
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: #6b7280;
+  margin-bottom: 20px;
+}
+
+.pause-actions {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  margin-bottom: 18px;
 }
-.ios-step {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: #f8fafc;
-  padding: 10px 12px;
+
+.resume-btn {
+  width: 100%;
+  padding: 12px;
+  background: #10b981;
+  color: white;
+  border: none;
   border-radius: 14px;
-  border: 1.5px solid #e2e8f0;
-}
-.step-num {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: #FF7E5F;
-  color: #fff;
   font-family: var(--font-title);
-  font-weight: 800;
-  font-size: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  box-shadow: 0 2px 6px rgba(255, 126, 95, 0.4);
-}
-.ios-step p {
-  margin: 0;
-  font-family: var(--font-body);
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 700;
-  color: #334155;
-  line-height: 1.35;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+.resume-btn:hover {
+  background: #059669;
+  transform: translateY(-2px);
+}
+.resume-btn:active {
+  transform: translateY(1px);
+}
+
+.home-btn {
+  width: 100%;
+  padding: 12px;
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  font-family: var(--font-title);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+.home-btn:hover {
+  background: #e5e7eb;
+  transform: translateY(-2px);
+}
+.home-btn:active {
+  transform: translateY(1px);
 }
 
 /* ── Game Over Card ─────────────────────────────────────── */
-.gameover-card { padding-top: 52px; }
-
-.trophy-wrap {
-  position: absolute; top: -62px;
-  left: 50%; transform: translateX(-50%);
+#game-over-modal .modal-content,
+#game-over-modal .playful-card,
+.gameover-card,
+.game-over-card {
+  position: relative;
+  overflow: visible !important; /* Kupanın kartın üstünden taşarak rozet gibi durmasını sağlar */
+  padding-top: 50px;           /* Kupa kartın üstüne bindiği için yazıların aşağı kayması */
+  text-align: center;
 }
-.trophy-img {
-  width: 106px; height: 106px; object-fit: contain;
-  filter: drop-shadow(0 6px 14px rgba(0,0,0,.4));
+
+.trophy-wrap,
+.trophy-container,
+.game-over-trophy {
+  position: absolute;
+  top: -45px;                  /* Kartın tam tepe ortasına rozet gibi oturt */
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90px;
+  height: 90px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.2));
   animation: floatTrophy 2.5s ease-in-out infinite;
 }
+
 @keyframes floatTrophy {
-  0%,100% { transform: translateY(0); }
-  50%     { transform: translateY(-8px); }
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50%      { transform: translateX(-50%) translateY(-5px); }
+}
+
+.trophy-img,
+.game-over-trophy img,
+.trophy-container svg {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
 }
 
 .gameover-card h2 {
@@ -892,8 +1017,12 @@ body {
   .score-card  { min-width: 60px; padding: 5px 8px; }
   /* Hide "HEDEF ISLEM" pill label — the big number is self-explanatory */
   .question-pill { display: none; }
-  /* Hearts are tiny enough */
-  .heart-icon  { width: 22px; height: 22px; }
+  /* Hearts & buttons */
+  .heart-icon  { width: 20px; height: 20px; }
+  .hud-circle-btn { width: 30px; height: 30px; }
+  .hud-circle-btn svg { width: 16px; height: 16px; }
+  .icon-btn    { width: 30px; height: 30px; }
+  .icon-btn svg, .icon-btn img { width: 16px; height: 16px; }
   .mode-icon   { width: 22px; height: 22px; }
   .btn-knife-icon { width: 20px; height: 20px; }
   .mode-capsule-btn { padding: 6px 8px; gap: 6px; }

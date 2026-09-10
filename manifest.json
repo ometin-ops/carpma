@@ -2,8 +2,8 @@
   "name": "Dilimle",
   "short_name": "Dilimle",
   "description": "Eğlenceli meyve kesmece ve çarpım tablosu pratik oyunu",
-  "start_url": "./",
-  "scope": "./",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#BEE3DB",
@@ -13,6 +13,12 @@
     {
       "src": "icon1.png",
       "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon2.png",
+      "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
     },

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'math-slicer-v1.4';
+const CACHE_NAME = 'math-slicer-v1.5';
 
 const ASSETS_TO_CACHE = [
   './',

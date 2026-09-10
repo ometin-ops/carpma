@@ -326,8 +326,8 @@
   const ctx          = canvas.getContext('2d');
   const hud          = document.getElementById('hud');
   const scoreDisplay = document.getElementById('score-display') || document.getElementById('scoreText');
-  const questionCard = document.getElementById('questionCard');
-  const questionText = document.getElementById('questionText');
+  const questionCard = document.getElementById('targetQuestionBox') || document.getElementById('questionCard');
+  const questionText = document.getElementById('targetEquation') || document.getElementById('questionText');
   const comboBadge   = document.getElementById('comboBadge');
   const soundTogBtn  = document.getElementById('soundToggleBtn');
   const soundIcon    = document.getElementById('soundIcon');
@@ -341,6 +341,10 @@
   const highScoreEl  = document.getElementById('highScore');
   const restartBtn   = document.getElementById('restartBtn');
   const menuBtn      = document.getElementById('menuBtn');
+  const pauseBtn     = document.getElementById('pauseBtn');
+  const pauseModal   = document.getElementById('pauseModal');
+  const resumeBtn    = document.getElementById('resumeBtn');
+  const pauseToHomeBtn = document.getElementById('pauseToHomeBtn');
   const heartEls     = [
     document.getElementById('heart-1'),
     document.getElementById('heart-2'),
@@ -355,6 +359,7 @@
   let W = window.innerWidth;
   let H = window.innerHeight;
   let state = 'menu';             // 'menu' | 'playing' | 'gameover'
+  let isPaused = false;
 
   // Settings (set from UI before game starts)
   let gameMode    = 'product';    // 'product' | 'factor'
@@ -507,20 +512,36 @@
       const hideFirst = Math.random() < 0.5;
       if (hideFirst) {
         targetAnswer = curA;
-        questionText.textContent = `? \u00D7 ${curB} = ${product}`;
+        updateQuestionDisplay(`? \u00D7 ${curB} = ${product}`);
       } else {
         targetAnswer = curB;
-        questionText.textContent = `${curA} \u00D7 ? = ${product}`;
+        updateQuestionDisplay(`${curA} \u00D7 ? = ${product}`);
       }
     } else {
       // Çarpımı Bul (Klasik) Modu: a × b = ?
       targetAnswer = product;
-      questionText.textContent = `${curA} \u00D7 ${curB} = ?`;
+      updateQuestionDisplay(`${curA} \u00D7 ${curB} = ?`);
     }
 
     questionCard.classList.remove('bump');
     void questionCard.offsetWidth;
     questionCard.classList.add('bump');
+  }
+
+  function updateQuestionDisplay(qText) {
+    const equationEl = document.getElementById('targetEquation') || questionText;
+    if (!equationEl) return;
+
+    equationEl.textContent = qText;
+
+    // Uzun işlemlerde puntoyu hafif küçült
+    if (qText.length > 10) {
+      equationEl.style.fontSize = '16px';
+    } else if (qText.length > 8) {
+      equationEl.style.fontSize = '18px';
+    } else {
+      equationEl.style.fontSize = '20px';
+    }
   }
 
   function rng(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
@@ -1064,7 +1085,7 @@
       const sliceDelay = isSlow ? 1200 : (speedMode === 'fast' || speedMode === 'hizli' ? 650 : 800);
       waveTimerId = setTimeout(() => {
         try {
-          if (state === 'playing') {
+          if (state === 'playing' && !isPaused) {
             generateQuestion();
             spawnWave();
           }
@@ -1176,8 +1197,10 @@
     objects = []; halves = []; parts = []; ftexts = [];
     blade.length = 0;
 
+    isPaused     = false;
     startModal.classList.add('hidden');
     gameOverModal.classList.add('hidden');
+    if (pauseModal) pauseModal.classList.add('hidden');
     hud.classList.remove('hidden');
 
     // Canvas becomes the primary input surface during gameplay
@@ -1275,6 +1298,7 @@
      INPUT — SLICE LOGIC (shared between mouse and touch)
      ================================================================ */
   function sliceStart(pos) {
+    if (isPaused) return;
     sound.init();
     cutting = true;
     lastPos = pos;
@@ -1282,6 +1306,7 @@
   }
 
   function sliceMove(pos) {
+    if (isPaused) return;
     blade.push({ x: pos.x, y: pos.y, t: performance.now() });
 
     if (lastPos && state === 'playing') {
@@ -1500,6 +1525,66 @@
   });
 
   /* ================================================================
+     PAUSE / RESUME / GO TO MAIN MENU
+     ================================================================ */
+  function pauseGame() {
+    if (state !== 'playing' || isPaused) return;
+    isPaused = true;
+    if (bgMusic && !sound.muted) {
+      try { bgMusic.pause(); } catch (e) {}
+    }
+    if (pauseModal) pauseModal.classList.remove('hidden');
+    setCanvasActive(false);
+  }
+
+  function resumeGame() {
+    if (!isPaused) return;
+    isPaused = false;
+    if (pauseModal) pauseModal.classList.add('hidden');
+    setCanvasActive(true);
+
+    // Delta time sıçramasını önlemek için zamanı sıfırla:
+    lastTime = performance.now();
+
+    if (bgMusic && !sound.muted) {
+      bgMusic.play().catch(e => console.log("Müzik devam ettirilemedi:", e));
+    }
+
+    // Eğer mola sırasında dalga geçişindeyse yeni soruyu ve dalgayı başlat
+    if (!isWaveActive && objects.length === 0 && state === 'playing') {
+      generateQuestion();
+      spawnWave();
+    }
+  }
+
+  function goToMainMenu() {
+    isPaused = false;
+    if (pauseModal) pauseModal.classList.add('hidden');
+    if (bgMusic) {
+      try {
+        bgMusic.pause();
+        bgMusic.currentTime = 0;
+      } catch (e) {}
+    }
+    if (waveTimerId) clearTimeout(waveTimerId);
+    objects = [];
+    halves  = [];
+    parts   = [];
+    ftexts  = [];
+    blade.length = 0;
+
+    hud.classList.add('hidden');
+    gameOverModal.classList.add('hidden');
+    startModal.classList.remove('hidden');
+    setCanvasActive(false);
+    state = 'menu';
+  }
+
+  if (pauseBtn) pauseBtn.addEventListener('click', pauseGame);
+  if (resumeBtn) resumeBtn.addEventListener('click', resumeGame);
+  if (pauseToHomeBtn) pauseToHomeBtn.addEventListener('click', goToMainMenu);
+
+  /* ================================================================
      MAIN LOOP (Delta-Time 60 FPS Physics & Smooth Rendering)
      ================================================================ */
   let lastTime = performance.now();
@@ -1519,92 +1604,101 @@
       ctx.clearRect(0, 0, W, H);
 
       if (state === 'playing') {
-        if (isWaveActive) {
-          // Elastic overlap resolution each frame
-          resolveCollisions();
+        if (!isPaused) {
+          if (isWaveActive) {
+            // Elastic overlap resolution each frame
+            resolveCollisions();
 
-          let allDone = true, targetMissed = false;
-          for (const o of objects) {
-            if (!o.sliced && !o.fell) allDone = false;
-            if (o.isTarget && o.fell && !o.sliced) {
-              targetMissed = true;
-              o.isTarget = false; // Tekrar tetiklenmesini engelle
+            let allDone = true, targetMissed = false;
+            for (const o of objects) {
+              if (!o.sliced && !o.fell) allDone = false;
+              if (o.isTarget && o.fell && !o.sliced) {
+                targetMissed = true;
+                o.isTarget = false; // Tekrar tetiklenmesini engelle
+              }
+            }
+
+            if (targetMissed) {
+              try { sound.playBuzzer(); } catch (e) {}
+              try { shakeScreen(false); } catch (e) {}
+              loseLife();
+              combo = 0;
+              comboBadge.classList.add('hidden');
+              ftexts.push(new FloatingText('KAÇIRDIN!', W * .5, H * .45, '#f59e0b', 42));
+              isWaveActive = false;
+
+              if (waveTimerId) clearTimeout(waveTimerId);
+              const missDelay = speedCfg().nextWaveMs || 1000;
+              waveTimerId = setTimeout(() => {
+                try {
+                  if (state === 'playing' && !isPaused) {
+                    generateQuestion();
+                    spawnWave();
+                  }
+                } catch (e) {
+                  console.error("Target missed spawn error:", e);
+                }
+              }, missDelay);
+
+            } else if (allDone && isWaveActive) {
+              isWaveActive = false;
+              if (waveTimerId) clearTimeout(waveTimerId);
+              const doneDelay = Math.min(speedCfg().nextWaveMs || 1000, 1600);
+              waveTimerId = setTimeout(() => {
+                try {
+                  if (state === 'playing' && !isPaused) {
+                    generateQuestion();
+                    spawnWave();
+                  }
+                } catch (e) {
+                  console.error("All done spawn error:", e);
+                }
+              }, doneDelay);
             }
           }
 
-          if (targetMissed) {
-            try { sound.playBuzzer(); } catch (e) {}
-            try { shakeScreen(false); } catch (e) {}
-            loseLife();
-            combo = 0;
-            comboBadge.classList.add('hidden');
-            ftexts.push(new FloatingText('KAÇIRDIN!', W * .5, H * .45, '#f59e0b', 42));
-            isWaveActive = false;
-
-            if (waveTimerId) clearTimeout(waveTimerId);
-            const missDelay = speedCfg().nextWaveMs || 1000;
-            waveTimerId = setTimeout(() => {
-              try {
-                if (state === 'playing') {
-                  generateQuestion();
-                  spawnWave();
-                }
-              } catch (e) {
-                console.error("Target missed spawn error:", e);
-              }
-            }, missDelay);
-
-          } else if (allDone && isWaveActive) {
-            isWaveActive = false;
-            if (waveTimerId) clearTimeout(waveTimerId);
-            const doneDelay = Math.min(speedCfg().nextWaveMs || 1000, 1600);
-            waveTimerId = setTimeout(() => {
-              try {
-                if (state === 'playing') {
-                  generateQuestion();
-                  spawnWave();
-                }
-              } catch (e) {
-                console.error("All done spawn error:", e);
-              }
-            }, doneDelay);
+          // Update & draw game objects
+          for (const o of objects) {
+            o.update(dt);
+            o.draw(ctx);
           }
+
+          // Half pieces
+          for (let i = halves.length - 1; i >= 0; i--) {
+            const h = halves[i];
+            h.update(dt);
+            h.draw(ctx);
+            if (h.alpha <= 0 || h.y > H + 120) halves.splice(i, 1);
+          }
+
+          // Particles
+          for (let i = parts.length - 1; i >= 0; i--) {
+            const p = parts[i];
+            p.update(dt);
+            p.draw(ctx);
+            if (p.alpha <= 0) parts.splice(i, 1);
+          }
+
+          // Floating texts
+          for (let i = ftexts.length - 1; i >= 0; i--) {
+            const ft = ftexts[i];
+            ft.update(dt);
+            ft.draw(ctx);
+            if (ft.alpha <= 0) ftexts.splice(i, 1);
+          }
+
+          // Blade trail
+          pruneBlade();
+          drawBlade();
+
+        } else {
+          // OYUN DURAKLATILDI: Nesneleri hareket ettirmeden mevcut dondurulmuş konumlarında çiz
+          for (const o of objects) o.draw(ctx);
+          for (const h of halves) h.draw(ctx);
+          for (const p of parts) p.draw(ctx);
+          for (const ft of ftexts) ft.draw(ctx);
         }
-
-        // Update & draw game objects
-        for (const o of objects) {
-          o.update(dt);
-          o.draw(ctx);
-        }
       }
-
-      // Half pieces
-      for (let i = halves.length - 1; i >= 0; i--) {
-        const h = halves[i];
-        h.update(dt);
-        h.draw(ctx);
-        if (h.alpha <= 0 || h.y > H + 120) halves.splice(i, 1);
-      }
-
-      // Particles
-      for (let i = parts.length - 1; i >= 0; i--) {
-        const p = parts[i];
-        p.update(dt);
-        p.draw(ctx);
-        if (p.alpha <= 0) parts.splice(i, 1);
-      }
-
-      // Floating texts
-      for (let i = ftexts.length - 1; i >= 0; i--) {
-        const ft = ftexts[i];
-        ft.update(dt);
-        ft.draw(ctx);
-        if (ft.alpha <= 0) ftexts.splice(i, 1);
-      }
-
-      // Blade trail
-      pruneBlade();
-      drawBlade();
 
     } catch (err) {
       console.error('gameLoop animation frame error:', err);
@@ -1623,64 +1717,48 @@
   }
 
   let deferredPrompt = null;
-  const installBtn = document.getElementById('installAppBtn');
-  const iosInstallModal = document.getElementById('iosInstallModal');
-  const closeIosInstallBtn = document.getElementById('closeIosInstallBtn');
+  const installBtn = document.getElementById('pwaInstallBtn') || document.querySelector('.install-app-btn');
 
-  // Check if running as installed standalone PWA
-  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  window.addEventListener('beforeinstallprompt', (e) => {
+    // Tarayıcının varsayılan otomatik mini çubuğunu durdur
+    e.preventDefault();
+    deferredPrompt = e;
 
-  // iOS Safari detection
-  const isIos = () => {
-    const ua = window.navigator.userAgent.toLowerCase();
-    return /iphone|ipad|ipod/.test(ua);
-  };
-  const isIosSafari = isIos() && !isStandalone;
-
-  if (!isStandalone) {
-    // Show button on iOS Safari since beforeinstallprompt is not supported on iOS
-    if (isIosSafari && installBtn) {
-      installBtn.classList.remove('hidden');
+    if (installBtn) {
+      installBtn.style.display = 'flex';
+      installBtn.classList.add('pulse');
     }
-
-    // Capture standard install prompt (Chrome / Android / Edge)
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      deferredPrompt = e;
-      if (installBtn) {
-        installBtn.classList.remove('hidden');
-      }
-    });
-  }
+  });
 
   if (installBtn) {
     installBtn.addEventListener('click', async () => {
       if (deferredPrompt) {
+        // Doğrudan sistemin resmi yükleme penceresini aç
         deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
-        if (outcome === 'accepted') {
-          installBtn.classList.add('hidden');
+
+        const choiceResult = await deferredPrompt.userChoice;
+        if (choiceResult && choiceResult.outcome === 'accepted') {
+          installBtn.style.display = 'none';
         }
         deferredPrompt = null;
-      } else if (isIosSafari) {
-        if (iosInstallModal) {
-          iosInstallModal.classList.remove('hidden');
+      } else {
+        // iOS Safari için otomatik tetikleyici bulunmadığından doğrudan kısa sistem uyarısı ver
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        if (isIOS) {
+          alert("iPhone/iPad için:\nAlttaki 'Paylaş' (kare içinde yukarı ok) butonuna dokunup 'Ana Ekrana Ekle'yi seçin.");
+        } else {
+          alert("Uygulama zaten yüklü veya tarayıcınız otomatik kurulumu desteklemiyor. Tarayıcı menüsünden (üç nokta) 'Uygulamayı Yükle'yi seçebilirsiniz.");
         }
       }
     });
   }
 
+  // Uygulama yüklendiği anda butonu tamamen gizle
   window.addEventListener('appinstalled', () => {
-    if (installBtn) installBtn.classList.add('hidden');
+    if (installBtn) installBtn.style.display = 'none';
     deferredPrompt = null;
-    console.log('[PWA] Uygulama başarıyla yüklendi!');
+    console.log('Dilimle başarıyla yüklendi.');
   });
-
-  if (closeIosInstallBtn && iosInstallModal) {
-    closeIosInstallBtn.addEventListener('click', () => {
-      iosInstallModal.classList.add('hidden');
-    });
-  }
 
   /* ================================================================
      MOBİL KARŞILAMA EKRANI (SPLASH SCREEN)
